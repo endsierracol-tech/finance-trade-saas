@@ -1,0 +1,182 @@
+// Finance Trade SaaS — Prisma Schema
+// Multi-tenant: cada tabla con tenant_id + RLS en Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum Rol {
+  SUPERADMIN
+  TENANT_ADMIN
+  PLAZA_ADMIN
+  ASESOR
+  TITULAR
+}
+
+enum PlanAbono {
+  DIARIO
+  SEMANAL
+  QUINCENAL
+}
+
+enum EstadoCuenta {
+  ACTIVA
+  SEGUIMIENTO
+  CERRADA
+}
+
+enum PlanSuscripcion {
+  AGIL        // hasta 500 cuentas, 2 plazas
+  PROFESIONAL // hasta 2000 cuentas, 5 plazas
+  ENTERPRISE  // ilimitado
+}
+
+// ─── TENANTS (clientes SaaS) ──────────────────────────────────────────────────
+
+model Tenant {
+  id            String          @id @default(uuid())
+  nombre        String
+  slug          String          @unique
+  plan          PlanSuscripcion @default(AGIL)
+  activo        Boolean         @default(true)
+  logoUrl       String?
+  colorPrimario String          @default("#d4af37")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  plazas        Plaza[]
+  usuarios      Usuario[]
+  clientes      Cliente[]
+  cuentas       Cuenta[]
+  abonos        Abono[]
+}
+
+// ─── USUARIOS ────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id         String   @id @default(uuid())
+  tenantId   String
+  supabaseId String   @unique // auth.users.id de Supabase
+  nombre     String
+  email      String
+  rol        Rol
+  plazaId    String?  // null para TENANT_ADMIN y SUPERADMIN
+  activo     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  plaza      Plaza?   @relation(fields: [plazaId], references: [id])
+  cuentas    Cuenta[] @relation("CuentaOperador")
+  abonos     Abono[]
+}
+
+// ─── PLAZAS (zonas/sucursales) ────────────────────────────────────────────────
+
+model Plaza {
+  id       String  @id @default(uuid())
+  tenantId String
+  nombre   String
+  ciudad   String
+  activa   Boolean @default(true)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  usuarios Usuario[]
+  clientes Cliente[]
+}
+
+// ─── CLIENTES (titulares de cuenta) ──────────────────────────────────────────
+
+model Cliente {
+  id             String   @id @default(uuid())
+  tenantId       String
+  plazaId        String
+  nombre         String
+  identificacion String
+  telefono       String
+  direccion      String
+  lat            Float?
+  lng            Float?
+  referencia1    String?
+  referencia2    String?
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  plaza          Plaza    @relation(fields: [plazaId], references: [id])
+  cuentas        Cuenta[]
+}
+
+// ─── CUENTAS DE CAPITAL (préstamos — vocabulario enmascarado) ─────────────────
+
+model Cuenta {
+  id                String       @id @default(uuid())
+  tenantId          String
+  clienteId         String
+  operadorId        String
+
+  // Capital
+  assigned_capital  Decimal      @db.Decimal(12, 2) // monto desembolsado
+  yield_rate        Decimal      @db.Decimal(5, 4)  // tasa ej: 0.2000 = 20%
+  total_a_retornar  Decimal      @db.Decimal(12, 2) // capital + rendimiento
+  plan_abono        PlanAbono    @default(DIARIO)
+  monto_abono       Decimal      @db.Decimal(10, 2) // cuota calculada
+  remaining_balance Decimal      @db.Decimal(12, 2) // saldo por cobrar
+  total_abonado     Decimal      @default(0) @db.Decimal(12, 2)
+
+  // Fechas
+  fecha_apertura    DateTime     @default(now())
+  fecha_proyectada  DateTime
+  fecha_cierre      DateTime?
+
+  estado            EstadoCuenta @default(ACTIVA)
+  notas             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  tenant            Tenant       @relation(fields: [tenantId], references: [id])
+  cliente           Cliente      @relation(fields: [clienteId], references: [id])
+  operador          Usuario      @relation("CuentaOperador", fields: [operadorId], references: [id])
+  abonos            Abono[]
+}
+
+// ─── ABONOS (pagos/cobros diarios) ───────────────────────────────────────────
+
+model Abono {
+  id         String   @id @default(uuid())
+  tenantId   String
+  cuentaId   String
+  operadorId String
+
+  monto      Decimal  @db.Decimal(10, 2)
+  fecha      DateTime @default(now())
+  lat        Float?   // GPS del cobrador en campo
+  lng        Float?
+  notas      String?
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  cuenta     Cuenta   @relation(fields: [cuentaId], references: [id])
+  operador   Usuario  @relation(fields: [operadorId], references: [id])
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  usuarioId  String
+  accion     String   // "ABONO_REGISTRADO", "CUENTA_ABIERTA", etc.
+  entidad    String   // "Cuenta", "Abono", "Cliente"
+  entidadId  String
+  detalle    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+}

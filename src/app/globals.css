@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/* ── Finance Trade · Paleta END SIERRA ── */
+:root {
+  --bg:           #030303;
+  --surface:      #0d0d0d;
+  --surface2:     #111111;
+  --border:       #1e1e1e;
+  --border2:      #2a2a2a;
+
+  --gold:         #d4af37;
+  --gold-dim:     rgba(212,175,55,0.08);
+  --gold-mid:     rgba(212,175,55,0.20);
+  --gold-border:  rgba(212,175,55,0.30);
+
+  --text:         #e8e8e8;
+  --text2:        #c0c0c0;
+  --muted:        #555555;
+  --muted2:       #888888;
+
+  --green:        #2d9e5b;
+  --green-dim:    rgba(45,158,91,0.10);
+  --green-border: rgba(45,158,91,0.35);
+
+  --red:          #c0392b;
+  --red-dim:      rgba(192,57,43,0.10);
+  --red-border:   rgba(192,57,43,0.35);
+
+  --amber:        #e8a87c;
+  --amber-dim:    rgba(232,168,124,0.08);
+  --amber-border: rgba(232,168,124,0.35);
+
+  --background: var(--bg);
+  --foreground: var(--text);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-gold: var(--gold);
+  --color-surface: var(--surface);
+  --color-border-ft: var(--border);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Scrollbar discreta */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
