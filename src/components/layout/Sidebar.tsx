@@ -12,16 +12,22 @@ import {
   Settings,
   LogOut,
   Shield,
+  UserCog,
+  MapPin,
+  CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const navItems = [
   { label: 'Dashboard',          href: '/dashboard',       icon: LayoutDashboard, section: 'principal' },
+  { label: 'Rutas',              href: '/rutas',            icon: MapPin,          section: 'principal' },
+  { label: 'Calendario',         href: '/calendario',       icon: CalendarDays,    section: 'principal' },
   { label: 'Titulares',          href: '/titulares',       icon: Users,           section: 'principal' },
   { label: 'Cuentas de Capital', href: '/cuentas',         icon: CreditCard,      section: 'principal' },
   { label: 'Operaciones',        href: '/operaciones',     icon: ArrowLeftRight,  section: 'principal' },
   { label: 'Reportes',           href: '/reportes',        icon: FileBarChart,    section: 'gestion'   },
+  { label: 'Operadores',         href: '/operadores',      icon: UserCog,         section: 'gestion'   },
   { label: 'Configuración',      href: '/configuracion',   icon: Settings,        section: 'sistema'   },
 ]
 

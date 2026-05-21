@@ -27,11 +27,18 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Rutas públicas
-  const publicPaths = ['/login', '/forgot-password', '/reset-password']
+  // Rutas siempre accesibles sin autenticación
+  const publicPaths = ['/login', '/forgot-password', '/auth/callback']
   const isPublicPath = publicPaths.some(p => pathname.startsWith(p))
 
-  if (!user && !isPublicPath) {
+  // /reset-password requiere sesión activa (recovery) — no redirigir autenticados
+  const isResetPath = pathname.startsWith('/reset-password')
+
+  if (!user && !isPublicPath && !isResetPath) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (!user && isResetPath) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
