@@ -2,6 +2,8 @@ import { type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getSessionCtx } from '@/lib/session-context'
+import { checkPlanLimit } from '@/lib/plan-limits'
+import { logAudit } from '@/lib/audit'
 
 const ROLES_GESTION = ['PLAZA_ADMIN', 'ASESOR']
 
@@ -51,6 +53,13 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Plaza no válida' }, { status: 400 })
     }
 
+    const limitCheck = await checkPlanLimit(ctx.tenant.id, ctx.tenant.plan, 'usuarios')
+    if (!limitCheck.allowed) {
+      return Response.json({
+        error: `Límite del plan alcanzado: ${limitCheck.current}/${limitCheck.limit} usuarios activos (Plan ${ctx.tenant.plan})`,
+      }, { status: 403 })
+    }
+
     const admin = createAdminClient()
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
       email,
@@ -72,6 +81,17 @@ export async function POST(request: NextRequest) {
       },
       include: { plaza: true },
     })
+
+    if (ctx.usuario) {
+      await logAudit({
+        tenantId:  ctx.tenant.id,
+        usuarioId: ctx.usuario.id,
+        accion:    'OPERADOR_CREADO',
+        entidad:   'Usuario',
+        entidadId: operador.id,
+        detalle:   { nombre, email, rol },
+      })
+    }
 
     return Response.json({ operador }, { status: 201 })
   } catch (err: any) {

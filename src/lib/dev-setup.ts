@@ -1,5 +1,7 @@
 import { prisma } from './prisma'
 
+const SUPERADMIN_EMAIL = 'endsierracol@gmail.com'
+
 export async function getOrCreateDevTenant() {
   const existing = await prisma.tenant.findFirst()
   if (existing) return existing
@@ -32,7 +34,12 @@ export async function getOrCreateDevOperador(
   email: string
 ) {
   const existing = await prisma.usuario.findUnique({ where: { supabaseId } })
-  if (existing) return existing
+  if (existing) {
+    if (email === SUPERADMIN_EMAIL && existing.rol !== 'SUPERADMIN') {
+      return prisma.usuario.update({ where: { supabaseId }, data: { rol: 'SUPERADMIN' as any } })
+    }
+    return existing
+  }
 
   return prisma.usuario.create({
     data: {
@@ -40,7 +47,7 @@ export async function getOrCreateDevOperador(
       supabaseId,
       nombre: email.split('@')[0] ?? 'Administrador',
       email,
-      rol: 'TENANT_ADMIN',
+      rol: (email === SUPERADMIN_EMAIL ? 'SUPERADMIN' : 'TENANT_ADMIN') as any,
     },
   })
 }

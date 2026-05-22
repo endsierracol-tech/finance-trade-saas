@@ -48,6 +48,7 @@ model Tenant {
   activo        Boolean         @default(true)
   logoUrl       String?
   colorPrimario String          @default("#d4af37")
+  fechaCorte    Int             @default(1)  // día del mes de renovación (1-28)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 

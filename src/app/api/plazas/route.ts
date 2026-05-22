@@ -1,14 +1,16 @@
 import { type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
-import { getOrCreateDevTenant } from '@/lib/dev-setup'
+import { getSessionCtx } from '@/lib/session-context'
+import { checkPlanLimit } from '@/lib/plan-limits'
+import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   try {
-    const tenant = await prisma.tenant.findFirst()
-    if (!tenant) return Response.json({ plazas: [] })
+    const ctx = await getSessionCtx()
+    if (!ctx) return Response.json({ error: 'No autenticado' }, { status: 401 })
+
     const plazas = await prisma.plaza.findMany({
-      where: { tenantId: tenant.id },
+      where: { tenantId: ctx.tenant.id },
       orderBy: { nombre: 'asc' },
     })
     return Response.json({ plazas })
@@ -19,19 +21,37 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 })
+    const ctx = await getSessionCtx()
+    if (!ctx) return Response.json({ error: 'No autenticado' }, { status: 401 })
+    if (ctx.isGestor) return Response.json({ error: 'No autorizado' }, { status: 403 })
 
     const { nombre, ciudad } = await request.json()
     if (!nombre || !ciudad) {
       return Response.json({ error: 'Nombre y ciudad son requeridos' }, { status: 400 })
     }
 
-    const tenant = await getOrCreateDevTenant()
-    const plaza  = await prisma.plaza.create({
-      data: { tenantId: tenant.id, nombre, ciudad },
+    const limitCheck = await checkPlanLimit(ctx.tenant.id, ctx.tenant.plan, 'plazas')
+    if (!limitCheck.allowed) {
+      return Response.json({
+        error: `Límite del plan alcanzado: ${limitCheck.current}/${limitCheck.limit} plazas activas (Plan ${ctx.tenant.plan})`,
+      }, { status: 403 })
+    }
+
+    const plaza = await prisma.plaza.create({
+      data: { tenantId: ctx.tenant.id, nombre, ciudad },
     })
+
+    if (ctx.usuario) {
+      await logAudit({
+        tenantId:  ctx.tenant.id,
+        usuarioId: ctx.usuario.id,
+        accion:    'PLAZA_CREADA',
+        entidad:   'Plaza',
+        entidadId: plaza.id,
+        detalle:   { nombre, ciudad },
+      })
+    }
+
     return Response.json({ plaza }, { status: 201 })
   } catch (err) {
     console.error(err)

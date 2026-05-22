@@ -14,25 +14,25 @@ export async function getSessionCtx(): Promise<SessionCtx | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const tenant = await prisma.tenant.findFirst()
+  const found = await prisma.usuario.findFirst({
+    where: { supabaseId: user.id },
+    select: { id: true, rol: true, plazaId: true, tenantId: true },
+  })
+  if (!found) return null
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: found.tenantId },
+    select: { id: true, nombre: true, plan: true },
+  })
   if (!tenant) return null
 
-  const usuario = await prisma.usuario.findFirst({
-    where: { tenantId: tenant.id, supabaseId: user.id },
-    select: { id: true, rol: true, plazaId: true },
-  })
-
-  const isGestor = !!(
-    usuario &&
-    usuario.rol !== 'TENANT_ADMIN' &&
-    usuario.rol !== 'SUPERADMIN'
-  )
+  const isGestor = found.rol !== 'TENANT_ADMIN' && found.rol !== 'SUPERADMIN'
 
   return {
-    tenant: { id: tenant.id, nombre: tenant.nombre, plan: tenant.plan },
-    usuario,
+    tenant,
+    usuario: { id: found.id, rol: found.rol, plazaId: found.plazaId },
     isGestor,
-    plazaId: usuario?.plazaId ?? null,
+    plazaId: found.plazaId ?? null,
   }
 }
 

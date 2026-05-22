@@ -213,20 +213,35 @@ Spacing base: 4px
 | M07 | Gestión de Operadores (CRUD + Supabase Auth) | ✓     |
 | M08 | Calendario de cobros (mes, panel lateral, plaza filter) | ✓ |
 | M09 | Rutas + filtro de plaza                     | ✓      |
+| M00 | SuperAdmin (gestión tenants + TENANT_ADMIN, role-gating sidebar) | ✓ |
 
 **Aislamiento multi-plaza**: aplicado uniformemente en todos los módulos via `getSessionCtx()` + helpers de filtro.
+
+### Archivos M00
+```
+src/app/(dashboard)/superadmin/
+  page.tsx              — lista de tenants con stats
+  nuevo/page.tsx        — crear tenant + TENANT_ADMIN
+  [id]/page.tsx         — detalle: stats + lista usuarios
+  [id]/TenantEditPanel.tsx — edit inline (nombre, plan, color, activo/inactivo, eliminar)
+src/app/api/superadmin/
+  tenants/route.ts      — GET list + POST create
+  tenants/[id]/route.ts — GET + PATCH + DELETE (borra Auth + Prisma)
+```
+
+**Nota**: `session-context.ts` fue corregido — ahora busca usuario por `supabaseId` primero, luego su tenant por `tenantId` (fix multi-tenant real). `dev-setup.ts` detecta `endsierracol@gmail.com` y asigna rol SUPERADMIN en nuevas instalaciones.
 
 ---
 
 ## 8. PENDIENTES (por prioridad)
 
 ### Alta prioridad
-1. ~~**Página "Olvidé mi contraseña"**~~ ✓ Completado — `/forgot-password`, `/reset-password`, `/auth/callback`, `src/middleware.ts`
+1. ~~**Página "Olvidé mi contraseña"**~~ ✓ Completado
+2. ~~**M00 SuperAdmin**~~ ✓ Completado
 
 ### Media prioridad
-2. **Supabase RLS policies**: segunda capa de seguridad multi-tenant a nivel DB
-3. **Deploy a Vercel**: configurar env vars en Vercel dashboard + dominio personalizado
-4. **M00 SuperAdmin**: panel para END SIERRA — crear/gestionar tenants + usuarios TENANT_ADMIN; reemplaza `dev-setup.ts`
+3. **Deploy a Vercel**: configurar env vars en Vercel dashboard + dominio personalizado (aplazado — liberación de correo pendiente)
+4. **Supabase RLS policies**: segunda capa de seguridad multi-tenant a nivel DB
 
 ### Baja prioridad
 5. **Módulo Seguimiento**: cuentas vencidas, alertas, notificaciones

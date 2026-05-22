@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getOrCreateDevTenant, getOrCreateDevOperador } from '@/lib/dev-setup'
 import { calcularFechaProyectada, type PlanAbono } from '@/lib/cuenta-utils'
 import { getSessionCtx, plazaCuentaFilter } from '@/lib/session-context'
+import { checkPlanLimit } from '@/lib/plan-limits'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,6 +50,13 @@ export async function POST(request: NextRequest) {
     const tenant   = await getOrCreateDevTenant()
     const operador = await getOrCreateDevOperador(user.id, tenant.id, user.email ?? '')
 
+    const limitCheck = await checkPlanLimit(tenant.id, tenant.plan, 'cuentas')
+    if (!limitCheck.allowed) {
+      return Response.json({
+        error: `Límite del plan alcanzado: ${limitCheck.current}/${limitCheck.limit} cuentas activas (Plan ${tenant.plan})`,
+      }, { status: 403 })
+    }
+
     const capital  = parseFloat(assigned_capital)
     const tasaPct  = parseFloat(yield_rate)
     const cuotas   = parseInt(n_cuotas)
@@ -75,6 +84,15 @@ export async function POST(request: NextRequest) {
         notas:            notas || null,
       },
       include: { cliente: true },
+    })
+
+    await logAudit({
+      tenantId:  tenant.id,
+      usuarioId: operador.id,
+      accion:    'CUENTA_ABIERTA',
+      entidad:   'Cuenta',
+      entidadId: cuenta.id,
+      detalle:   { assigned_capital: capital, plan_abono },
     })
 
     return Response.json({ cuenta }, { status: 201 })

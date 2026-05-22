@@ -31,7 +31,7 @@ const navItems = [
   { label: 'Configuración',      href: '/configuracion',   icon: Settings,        section: 'sistema'   },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ rol, isGestor }: { rol: string | null; isGestor: boolean }) {
   const pathname  = usePathname()
   const router    = useRouter()
   const supabase  = createClient()
@@ -40,6 +40,11 @@ export default function Sidebar() {
     await supabase.auth.signOut()
     router.push('/login')
   }
+
+  const visibleNavItems = navItems.filter(item => {
+    if (item.href === '/operadores' && isGestor) return false
+    return true
+  })
 
   const sections = ['principal', 'gestion', 'sistema'] as const
   const sectionLabels = { principal: 'Principal', gestion: 'Gestión', sistema: 'Sistema' }
@@ -56,7 +61,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
         {sections.map(section => {
-          const items = navItems.filter(i => i.section === section)
+          const items = visibleNavItems.filter(i => i.section === section)
           if (!items.length) return null
           return (
             <div key={section}>
@@ -88,13 +93,15 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-[#1e1e1e] p-2 space-y-1">
-        <Link
-          href="/superadmin"
-          className="flex items-center gap-2 px-3 py-2 text-[10px] font-mono text-[#555] hover:text-[#888] transition-colors"
-        >
-          <Shield size={11} />
-          SuperAdmin
-        </Link>
+        {rol === 'SUPERADMIN' && (
+          <Link
+            href="/superadmin"
+            className="flex items-center gap-2 px-3 py-2 text-[10px] font-mono text-[#555] hover:text-[#888] transition-colors"
+          >
+            <Shield size={11} />
+            SuperAdmin
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-mono text-[#555] hover:text-[#c0392b] transition-colors"
