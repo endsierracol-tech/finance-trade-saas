@@ -11,9 +11,11 @@ export default function ResetPasswordPage() {
   const [loading,  setLoading]  = useState(false)
   const [done,     setDone]     = useState(false)
   const router   = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
+    // useEffect solo corre en el navegador, asi que aca es seguro crearlo.
+    // Durante el render no lo seria: ver lib/supabase/client.ts.
+    const supabase = createClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) router.replace('/login')
     })
@@ -33,6 +35,7 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true)
+    const supabase = createClient()
     const { error: updateError } = await supabase.auth.updateUser({ password })
     setLoading(false)
 

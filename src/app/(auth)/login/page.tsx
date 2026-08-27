@@ -10,13 +10,15 @@ export default function LoginPage() {
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
   const router  = useRouter()
-  const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
 
+    // El cliente se crea acá y no durante el render: el prerenderizado de Next
+    // no ejecuta los manejadores, asi que la construccion no necesita secretos.
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {

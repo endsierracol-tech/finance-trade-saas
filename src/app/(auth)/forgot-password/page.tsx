@@ -8,11 +8,13 @@ export default function ForgotPasswordPage() {
   const [email,   setEmail]   = useState('')
   const [sent,    setSent]    = useState(false)
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    // Ver el comentario en lib/supabase/client.ts: crearlo durante el render
+    // rompe el prerenderizado.
+    const supabase = createClient()
     await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     })
