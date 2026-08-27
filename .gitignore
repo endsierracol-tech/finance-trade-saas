@@ -49,3 +49,49 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ── Secretos ─────────────────────────────────────────────────────────────────
+# Bloque canónico del laboratorio END SIERRA. Añadido el 2026-08-27.
+#
+# POR QUÉ ESTÁ ACÁ Y NO SOLO EN EL REPO PADRE: este repo es un submódulo. El
+# .gitignore de END SIERRA NO lo cubre, y el hook pre-commit tampoco se hereda
+# —git nunca activa hooks al clonar, por diseño de seguridad—. Esta lista es la
+# ÚNICA capa de protección que viaja con el repositorio.
+#
+# Precedente real: el 2026-08-20 una clave de cuenta de servicio de Google cayó
+# en clearedgo y ninguna regla la agarraba, porque Google las descarga como
+# "<proyecto>-<12 hex>.json", sin "secret" ni "key" en el nombre.
+#
+# La convención es que ninguna clave viva en un repo
+# (00-ARQUITECTURA/GESTION_SECRETOS.md). Esto es la red por si se olvida.
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Claves y certificados
+*.pem
+*.key
+*.p12
+*.pfx
+*.ppk
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+
+# Cuentas de servicio y credenciales en JSON
+*gserviceaccount*.json
+*service-account*.json
+*service_account*.json
+*secret*.json
+*credentials*.json
+*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
+
+# Acceso web y FTP
+.htpasswd
+*.htpasswd
+ftp_credentials.*
