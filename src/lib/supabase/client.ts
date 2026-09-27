@@ -20,7 +20,7 @@ export function createClient() {
 
     throw new Error(
       `Falta configuración de Supabase: ${faltan}. ` +
-      'Copiá .env.example a .env.local y completá los valores desde el vault.'
+      'Copia .env.example a .env.local y completa los valores desde el vault.'
     )
   }
 
